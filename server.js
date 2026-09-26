@@ -1,15 +1,22 @@
-const http = require('http');
+const express = require('express');
+const app = express();
 
-const server = http.createServer((req, res) => {
-    console.log('請求方法：', req.method);
-    console.log('請求網址：', req.url);
-    console.log('請求標頭：', req.headers);
-
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.end('收到請求了');
+app.get('/', (req, res) => {
+  res.send('這是首頁');
 });
 
-server.listen(3000, () => {
-    console.log('伺服器啟動於 http://localhost:3000');
+app.get('/about', (req, res) => {
+  res.send('這是關於頁面');
+});
+
+app.get('/success', (req, res) => {
+  res.status(200).send('請求成功');
+});
+
+app.get('/notfound', (req, res) => {
+  res.status(404).send('找不到這個頁面');
+});
+
+app.listen(3000, () => {
+  console.log('伺服器啟動於 http://localhost:3000');
 });

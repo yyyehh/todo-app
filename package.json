@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/yyyehh/todo-app/issues"
   },
-  "homepage": "https://github.com/yyyehh/todo-app#readme"
+  "homepage": "https://github.com/yyyehh/todo-app#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
 }
