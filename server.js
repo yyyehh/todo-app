@@ -1,6 +1,16 @@
 const express = require('express');
 const app = express();
 
+//Midleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.url} - ${duration}ms`);
+  });
+  next(); //必須要呼叫，不然請求會卡住
+});
+
 app.get('/', (req, res) => {
   res.send('這是首頁');
 });
