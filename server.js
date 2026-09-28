@@ -13,6 +13,26 @@ app.use((req, res, next) => {
 
 app.use(express.static('public')); 
 
+//先用陣列暫存資料，之後會換成資料庫
+const todos = [
+  { id: 1, title: '完成Web原理作業', done:false},
+  { id: 2, title: '寫鐵人賽文章', done:false},
+  { id: 3, title: '複習 Express 路由', done:true},
+];
+
+//取得所有代辦事項
+app.get('/api/todos', (req, res) => {
+  res.json(todos);
+});
+
+//取得單一代辦事項
+app.get('/api/todos/:id', (req, res) => {
+  const todo = todos.find(t => t.id === Number(req.params.id));
+  if (!todo) {
+   return res.status(404).json({ message: '找不到這筆代辦事項' });
+  }
+  res.json(todo);
+});
 
 app.get('/about', (req, res) => {
   res.send('這是關於頁面');

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html land=""zh-TW">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,11 +13,20 @@
             <input type="text" placeholder="請輸入待辦事項...">
             <button>新增</button>
         </div>
-        <ul>
-            <li>完成 Web原理作業</li>
-            <li>寫鐵人賽文章</li>
-            <li>複習 Express 路由</li>
-        </ul>
+        <ul id="todo-list"></ul>
+
+        <script>    
+            fetch('/api/todos')
+            .then(res => res.json())
+            .then(todos => {
+                const list = document.getElementById('todo-list');
+                todos.forEach(todo => {
+                    const li = document.createElement('li');
+                    li.textContent = todo.title;
+                    list.appendChild(li);
+                });
+            })
+        </script>
     </div>
 </body>
 </html>
