@@ -1,0 +1,19 @@
+body{
+    font-family: sans-serif;
+    background-color: #f4f4f8;
+    margin: 0;
+}
+.container{
+    max-width: 480px;
+    margin: 40px auto;
+    background-color: #fff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+h1{ text-align: center; }
+.add-box { display: flex; gap: 8px; margin-bottom: 16px; }
+.add-box input { flex: 1; padding: 8px; }
+.add-box button { padding: 8px 16px; cursor: pointer; }
+ul { list-style: none; padding: 0; }
+li { padding: 10px; border-bottom: 1px solid #eee; }

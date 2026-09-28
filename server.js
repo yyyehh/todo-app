@@ -11,9 +11,8 @@ app.use((req, res, next) => {
   next(); //必須要呼叫，不然請求會卡住
 });
 
-app.get('/', (req, res) => {
-  res.send('這是首頁');
-});
+app.use(express.static('public')); 
+
 
 app.get('/about', (req, res) => {
   res.send('這是關於頁面');
