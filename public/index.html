@@ -26,6 +26,25 @@
                     list.appendChild(li);
                 });
             })
+
+            document.querySelector('.add-box button').addEventListener('click', () => {
+            const input = document.querySelector('.add-box input');
+            const title = input.value.trim();
+            if (!title) return;
+
+            fetch('/api/todos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            })
+                .then(res => res.json())
+                .then(newTodo => {
+                const li = document.createElement('li');
+                li.textContent = newTodo.title;
+                document.getElementById('todo-list').appendChild(li);
+                input.value = '';
+                });
+            });
         </script>
     </div>
 </body>

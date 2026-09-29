@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 
+app.use(express.json()); //解析 JSON 格式的請求主體
+
 //Midleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -20,19 +22,29 @@ const todos = [
   { id: 3, title: '複習 Express 路由', done:true},
 ];
 
-//取得所有代辦事項
-app.get('/api/todos', (req, res) => {
-  res.json(todos);
-});
+//取得所有待辦事項
+app.get('/api/todos', (req, res) => { res.json(todos); });
 
-//取得單一代辦事項
+//取得單一待辦事項
 app.get('/api/todos/:id', (req, res) => {
   const todo = todos.find(t => t.id === Number(req.params.id));
   if (!todo) {
-   return res.status(404).json({ message: '找不到這筆代辦事項' });
+   return res.status(404).json({ message: '找不到這筆待辦事項' });
   }
   res.json(todo);
 });
+
+//新增待辦事項
+app.post('/api/todos', (req, res) => {
+  const newTodo = {
+    id: todos.length > 0 ? todos[todos.length - 1].id + 1 : 1,
+    title: req.body.title,
+    done: false
+  };
+  todos.push(newTodo);
+  res.status(201).json(newTodo);
+});
+
 
 app.get('/about', (req, res) => {
   res.send('這是關於頁面');
