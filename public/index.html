@@ -16,16 +16,37 @@
         <ul id="todo-list"></ul>
 
         <script>    
+            function renderTodo(todo) {
+                const li = document.createElement('li');
+                li.textContent = todo.title;
+                if (todo.done) li.style.textDecoration = 'line-through';
+
+                li.addEventListener('click', () => {
+                    fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
+                    .then(res => res.json())
+                    .then(updated => {
+                        li.style.textDecoration = updated.done ? 'line-through' : 'none';
+                    });
+                });
+
+                const delBtn = document.createElement('button');
+                delBtn.textContent = '刪除';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
+                    .then(() => li.remove());
+                });
+
+                li.appendChild(delBtn);
+                document.getElementById('todo-list').appendChild(li);
+            }
+
+            // 抓取全部清單，改用 renderTodo 顯示
             fetch('/api/todos')
             .then(res => res.json())
             .then(todos => {
-                const list = document.getElementById('todo-list');
-                todos.forEach(todo => {
-                    const li = document.createElement('li');
-                    li.textContent = todo.title;
-                    list.appendChild(li);
-                });
-            })
+                todos.forEach(renderTodo);
+            });
 
             document.querySelector('.add-box button').addEventListener('click', () => {
             const input = document.querySelector('.add-box input');
@@ -39,9 +60,7 @@
             })
                 .then(res => res.json())
                 .then(newTodo => {
-                const li = document.createElement('li');
-                li.textContent = newTodo.title;
-                document.getElementById('todo-list').appendChild(li);
+                renderTodo(newTodo);
                 input.value = '';
                 });
             });

@@ -45,6 +45,26 @@ app.post('/api/todos', (req, res) => {
   res.status(201).json(newTodo);
 });
 
+//更新待辦事項
+app.put('/api/todos/:id', (req, res) => {
+  const todo = todos.find(t => t.id === Number(req.params.id));
+  if (!todo) {
+    return res.status(404).json({ message: '找不到這筆待辦事項' });
+  }
+  todo.done = !todo.done; //切換完成狀態
+  res.json(todo);
+});
+
+//刪除待辦事項
+app.delete('/api/todos/:id', (req, res) => {
+  const index = todos.findIndex(t => t.id === Number(req.params.id));
+  if (index === -1) {
+    return res.status(404).json({ message: '找不到這筆待辦事項' });
+  }
+  todos.splice(index, 1);
+  res.status(204).send();
+});
+
 
 app.get('/about', (req, res) => {
   res.send('這是關於頁面');
