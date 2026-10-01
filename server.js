@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 
 app.use(express.json()); //解析 JSON 格式的請求主體
+const db = require('./db');
 
 //Midleware
 app.use((req, res, next) => {
@@ -15,15 +16,16 @@ app.use((req, res, next) => {
 
 app.use(express.static('public')); 
 
-//先用陣列暫存資料，之後會換成資料庫
-const todos = [
-  { id: 1, title: '完成Web原理作業', done:false},
-  { id: 2, title: '寫鐵人賽文章', done:false},
-  { id: 3, title: '複習 Express 路由', done:true},
-];
 
 //取得所有待辦事項
-app.get('/api/todos', (req, res) => { res.json(todos); });
+app.get('/api/todos', (req, res) => {
+  db.all('SELECT * FROM todos', (err, rows) => {
+    if (err) {
+      return res.status(500).json({ message: '資料庫錯誤' });
+    }
+    res.json(rows);
+  });
+});
 
 //取得單一待辦事項
 app.get('/api/todos/:id', (req, res) => {
