@@ -38,33 +38,54 @@ app.get('/api/todos/:id', (req, res) => {
 
 //新增待辦事項
 app.post('/api/todos', (req, res) => {
-  const newTodo = {
-    id: todos.length > 0 ? todos[todos.length - 1].id + 1 : 1,
-    title: req.body.title,
-    done: false
-  };
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
+  const { title } = req.body;
+  if (!title) {
+    return res.status(400).json({ message: '請提供待辦事項內容' });
+  }
+
+  const stmt = db.prepare('INSERT INTO todos (title, done) VALUES (?, 0)');
+  stmt.run(title, function (err) {
+    if (err) {
+      return res.status(500).json({ message: '資料庫錯誤' });
+    }
+    // this.lastID 是剛剛新增那筆資料的 id
+    res.status(201).json({ id: this.lastID, title, done: 0 });
+  });
+  stmt.finalize();
 });
 
 //更新待辦事項
 app.put('/api/todos/:id', (req, res) => {
-  const todo = todos.find(t => t.id === Number(req.params.id));
-  if (!todo) {
-    return res.status(404).json({ message: '找不到這筆待辦事項' });
-  }
-  todo.done = !todo.done; //切換完成狀態
-  res.json(todo);
+  const id = Number(req.params.id);
+
+  db.get('SELECT * FROM todos WHERE id = ?', [id], (err, todo) => {
+    if (!todo) {
+      return res.status(404).json({ message: '找不到這筆待辦事項' });
+    }
+
+    const newDone = todo.done ? 0 : 1;
+    db.run('UPDATE todos SET done = ? WHERE id = ?', [newDone, id], (err) => {
+      if (err) {
+        return res.status(500).json({ message: '資料庫錯誤' });
+      }
+      res.json({ ...todo, done: newDone });
+    });
+  });
 });
 
 //刪除待辦事項
 app.delete('/api/todos/:id', (req, res) => {
-  const index = todos.findIndex(t => t.id === Number(req.params.id));
-  if (index === -1) {
-    return res.status(404).json({ message: '找不到這筆待辦事項' });
-  }
-  todos.splice(index, 1);
-  res.status(204).send();
+  const id = Number(req.params.id);
+
+  db.run('DELETE FROM todos WHERE id = ?', [id], function (err) {
+    if (err) {
+      return res.status(500).json({ message: '資料庫錯誤' });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ message: '找不到這筆待辦事項' });
+    }
+    res.status(204).send();
+  });
 });
 
 
