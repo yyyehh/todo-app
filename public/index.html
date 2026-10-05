@@ -51,17 +51,29 @@
             document.querySelector('.add-box button').addEventListener('click', () => {
             const input = document.querySelector('.add-box input');
             const title = input.value.trim();
-            if (!title) return;
+
+            if (!title) {
+                alert('請輸入待辦事項內容');
+                return;
+            }
 
             fetch('/api/todos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title })
             })
-                .then(res => res.json())
+                .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message); });
+                }
+                return res.json();
+                })
                 .then(newTodo => {
                 renderTodo(newTodo);
                 input.value = '';
+                })
+                .catch(err => {
+                alert(err.message);
                 });
             });
         </script>
