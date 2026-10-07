@@ -19,10 +19,8 @@ app.use(express.static('public'));
 
 //取得所有待辦事項
 app.get('/api/todos', (req, res) => {
-  db.all('SELECT * FROM todos', (err, rows) => {
-    if (err) {
-      return res.status(500).json({ message: '資料庫錯誤' });
-    }
+  db.all('SELECT * FROM todos ORDER BY due_date ASC', (err, rows) => {
+    if (err) return res.status(500).json({ message: '資料庫錯誤' });
     res.json(rows);
   });
 });
@@ -40,15 +38,16 @@ app.get('/api/todos/:id', (req, res) => {
 app.post('/api/todos', (req, res) => {
   const title = (req.body.title || '').trim();
   const category = (req.body.category || '未分類').trim();
+  const due_date = req.body.due_date || null;
 
   if (!title) {
     return res.status(400).json({ message: '待辦事項內容不能是空白' });
   }
 
-  const stmt = db.prepare('INSERT INTO todos (title, done, category) VALUES (?, 0, ?)');
-  stmt.run(title, category, function (err) {
+  const stmt = db.prepare('INSERT INTO todos (title, done, category, due_date) VALUES (?, 0, ?, ?)');
+  stmt.run(title, category, due_date, function (err) {
     if (err) return res.status(500).json({ message: '資料庫錯誤' });
-    res.status(201).json({ id: this.lastID, title, done: 0, category });
+    res.status(201).json({ id: this.lastID, title, done: 0, category, due_date });
   });
   stmt.finalize();
 });
