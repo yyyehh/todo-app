@@ -10,35 +10,52 @@
     <div class="container">
         <h1>我的待辦清單</h1>
         <div class="add-box">
-            <input type="text" placeholder="請輸入待辦事項...">
-            <button>新增</button>
+        <input type="text" placeholder="請輸入待辦事項...">
+        <select id="category-select">
+            <option value="作業">作業</option>
+            <option value="生活">生活</option>
+            <option value="鐵人賽">鐵人賽</option>
+            <option value="未分類">未分類</option>
+        </select>
+        <button>新增</button>
         </div>
         <ul id="todo-list"></ul>
 
         <script>    
             function renderTodo(todo) {
-                const li = document.createElement('li');
-                li.textContent = todo.title;
-                if (todo.done) li.style.textDecoration = 'line-through';
+            const li = document.createElement('li');
 
-                li.addEventListener('click', () => {
-                    fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
-                    .then(res => res.json())
-                    .then(updated => {
-                        li.style.textDecoration = updated.done ? 'line-through' : 'none';
-                    });
+            const tag = document.createElement('span');
+            tag.textContent = `[${todo.category}] `;
+            tag.style.color = '#888';
+            tag.style.fontSize = '0.85em';
+
+            const text = document.createElement('span');
+            text.textContent = todo.title;
+
+            li.appendChild(tag);
+            li.appendChild(text);
+
+            if (todo.done) li.style.textDecoration = 'line-through';
+
+            li.addEventListener('click', () => {
+                fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
+                .then(res => res.json())
+                .then(updated => {
+                    li.style.textDecoration = updated.done ? 'line-through' : 'none';
                 });
+            });
 
-                const delBtn = document.createElement('button');
-                delBtn.textContent = '刪除';
-                delBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
-                    .then(() => li.remove());
-                });
+            const delBtn = document.createElement('button');
+            delBtn.textContent = '刪除';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
+                .then(() => li.remove());
+            });
 
-                li.appendChild(delBtn);
-                document.getElementById('todo-list').appendChild(li);
+            li.appendChild(delBtn);
+            document.getElementById('todo-list').appendChild(li);
             }
 
             // 抓取全部清單，改用 renderTodo 顯示
@@ -50,6 +67,7 @@
 
             document.querySelector('.add-box button').addEventListener('click', () => {
             const input = document.querySelector('.add-box input');
+            const category = document.getElementById('category-select').value;
             const title = input.value.trim();
 
             if (!title) {
@@ -60,21 +78,17 @@
             fetch('/api/todos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title })
+                body: JSON.stringify({ title, category })
             })
                 .then(res => {
-                if (!res.ok) {
-                    return res.json().then(err => { throw new Error(err.message); });
-                }
+                if (!res.ok) return res.json().then(err => { throw new Error(err.message); });
                 return res.json();
                 })
                 .then(newTodo => {
                 renderTodo(newTodo);
                 input.value = '';
                 })
-                .catch(err => {
-                alert(err.message);
-                });
+                .catch(err => alert(err.message));
             });
         </script>
     </div>

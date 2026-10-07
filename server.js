@@ -39,18 +39,16 @@ app.get('/api/todos/:id', (req, res) => {
 //新增待辦事項
 app.post('/api/todos', (req, res) => {
   const title = (req.body.title || '').trim();
+  const category = (req.body.category || '未分類').trim();
 
   if (!title) {
     return res.status(400).json({ message: '待辦事項內容不能是空白' });
   }
-  if (title.length > 50) {
-    return res.status(400).json({ message: '待辦事項內容不能超過 50 字' });
-  }
 
-  const stmt = db.prepare('INSERT INTO todos (title, done) VALUES (?, 0)');
-  stmt.run(title, function (err) {
+  const stmt = db.prepare('INSERT INTO todos (title, done, category) VALUES (?, 0, ?)');
+  stmt.run(title, category, function (err) {
     if (err) return res.status(500).json({ message: '資料庫錯誤' });
-    res.status(201).json({ id: this.lastID, title, done: 0 });
+    res.status(201).json({ id: this.lastID, title, done: 0, category });
   });
   stmt.finalize();
 });
