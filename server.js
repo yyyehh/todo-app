@@ -1,146 +1,36 @@
 const express = require('express');
+const todosRouter = require('./routes/todos');
+
 const app = express();
 
-app.use(express.json()); //解析 JSON 格式的請求主體
-const db = require('./db');
-
-//Midleware
+// 計時 Middleware
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
     console.log(`${req.method} ${req.url} - ${duration}ms`);
   });
-  next(); //必須要呼叫，不然請求會卡住
+  next();
 });
 
-app.use(express.static('public')); 
+app.use(express.json());
+app.use(express.static('public'));
 
-app.get('/api/todos', (req, res) => {
-  const { category } = req.query;
-  let sql = 'SELECT * FROM todos';
-  const params = [];
+// 待辦事項相關的 API 全部交給 router
+app.use('/api/todos', todosRouter);
 
-  if (category) {
-    sql += ' WHERE category = ?';
-    params.push(category);
-  }
-  // 沒有截止日的排最後（SQLite 預設 NULL 會排最前面）
-  sql += ' ORDER BY due_date IS NULL, due_date ASC';
+// /api 底下找不到的路徑，回傳 JSON 格式的 404
+app.use('/api', (req, res) => {
+  res.status(404).json({ message: 'API 路徑不存在' });
+});
 
-  db.all(sql, params, (err, rows) => {
-    if (err) return res.status(500).json({ message: '資料庫錯誤' });
-    res.json(rows);
+// 錯誤處理 Middleware（特徵：四個參數）
+app.use((err, req, res, next) => {
+  console.error(err.message);
+  const status = err.status || 500;
+  res.status(status).json({
+    message: status === 400 ? '請求格式錯誤' : '伺服器發生未預期的錯誤'
   });
-});
-
-app.get('/api/todos/stats', (req, res) => {
-  db.get(
-    `SELECT
-       COUNT(*) AS total,
-       COALESCE(SUM(done), 0) AS done,
-       COALESCE(SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END), 0) AS pending,
-       COALESCE(SUM(CASE WHEN done = 0 AND due_date IS NOT NULL
-                          AND due_date < date('now', 'localtime') THEN 1 ELSE 0 END), 0) AS overdue
-     FROM todos`,
-    (err, row) => {
-      if (err) return res.status(500).json({ message: '資料庫錯誤' });
-      res.json(row);
-    }
-  );
-});
-
-app.get('/api/todos/:id', (req, res) => {
-  db.get('SELECT * FROM todos WHERE id = ?', [Number(req.params.id)], (err, todo) => {
-    if (err) return res.status(500).json({ message: '資料庫錯誤' });
-    if (!todo) return res.status(404).json({ message: '找不到這筆待辦事項' });
-    res.json(todo);
-  });
-});
-
-//新增待辦事項
-app.post('/api/todos', (req, res) => {
-  const title = (req.body.title || '').trim();
-  const category = (req.body.category || '未分類').trim();
-  const due_date = req.body.due_date || null;
-
-  if (!title) {
-    return res.status(400).json({ message: '待辦事項內容不能是空白' });
-  }
-
-  const stmt = db.prepare('INSERT INTO todos (title, done, category, due_date) VALUES (?, 0, ?, ?)');
-  stmt.run(title, category, due_date, function (err) {
-    if (err) return res.status(500).json({ message: '資料庫錯誤' });
-    res.status(201).json({ id: this.lastID, title, done: 0, category, due_date });
-  });
-  stmt.finalize();
-});
-
-//更新待辦事項
-app.put('/api/todos/:id', (req, res) => {
-  const id = Number(req.params.id);
-
-  db.get('SELECT * FROM todos WHERE id = ?', [id], (err, todo) => {
-    if (!todo) {
-      return res.status(404).json({ message: '找不到這筆待辦事項' });
-    }
-
-    const newDone = todo.done ? 0 : 1;
-    db.run('UPDATE todos SET done = ? WHERE id = ?', [newDone, id], (err) => {
-      if (err) {
-        return res.status(500).json({ message: '資料庫錯誤' });
-      }
-      res.json({ ...todo, done: newDone });
-    });
-  });
-});
-
-//刪除待辦事項
-app.delete('/api/todos/:id', (req, res) => {
-  const id = Number(req.params.id);
-
-  db.run('DELETE FROM todos WHERE id = ?', [id], function (err) {
-    if (err) {
-      return res.status(500).json({ message: '資料庫錯誤' });
-    }
-    if (this.changes === 0) {
-      return res.status(404).json({ message: '找不到這筆待辦事項' });
-    }
-    res.status(204).send();
-  });
-});
-
-app.patch('/api/todos/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const title = (req.body.title || '').trim();
-
-  if (!title) {
-    return res.status(400).json({ message: '待辦事項內容不能是空白' });
-  }
-  if (title.length > 50) {
-    return res.status(400).json({ message: '待辦事項內容不能超過 50 字' });
-  }
-
-  db.run('UPDATE todos SET title = ? WHERE id = ?', [title, id], function (err) {
-    if (err) return res.status(500).json({ message: '資料庫錯誤' });
-    if (this.changes === 0) {
-      return res.status(404).json({ message: '找不到這筆待辦事項' });
-    }
-    res.json({ id, title });
-  });
-});
-
-
-app.get('/about', (req, res) => {
-  res.send('這是關於頁面');
-});
-
-app.get('/success', (req, res) => {
-  res.status(200).send('請求成功');
-});
-
-app.get('/notfound', (req, res) => {
-  res.status(404).send('找不到這個頁面');
 });
 
 app.listen(3000, () => {
