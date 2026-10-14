@@ -33,6 +33,7 @@
       </select>
     </div>
 
+    <p id="stats"></p>
     <ul id="todo-list"></ul>
   </div>
 
@@ -40,85 +41,110 @@
     const listEl = document.getElementById('todo-list');
     const filterEl = document.getElementById('filter-select');
 
+    function loadStats() {
+    fetch('/api/todos/stats')
+        .then(res => res.json())
+        .then(s => {
+        document.getElementById('stats').textContent =
+            `共 ${s.total} 筆｜未完成 ${s.pending} 筆｜已完成 ${s.done} 筆｜已逾期 ${s.overdue} 筆`;
+        });
+    }
+
     function renderTodo(todo) {
-        const li = document.createElement('li');
+    const today = new Date().toLocaleDateString('sv-SE'); // 本地日期，格式 2026-10-07
 
-        const tag = document.createElement('span');
-        tag.textContent = `[${todo.category}] `;
-        tag.style.color = '#888';
-        tag.style.fontSize = '0.85em';
+    const li = document.createElement('li');
 
-        const text = document.createElement('span');
-        text.textContent = todo.title;
+    const tag = document.createElement('span');
+    tag.textContent = `[${todo.category}] `;
+    tag.style.color = '#888';
+    tag.style.fontSize = '0.85em';
 
-        const date = document.createElement('span');
-        date.textContent = todo.due_date ? ` (截止：${todo.due_date})` : '';
-        date.style.color = '#c00';
-        date.style.fontSize = '0.8em';
+    const text = document.createElement('span');
+    text.textContent = todo.title;
 
-        li.appendChild(tag);
-        li.appendChild(text);
-        li.appendChild(date);
+    const date = document.createElement('span');
+    date.style.fontSize = '0.8em';
 
-        if (todo.done) li.style.textDecoration = 'line-through';
+    // 依目前狀態更新外觀（完成線、逾期提示）
+    function applyState() {
+        li.style.textDecoration = todo.done ? 'line-through' : 'none';
+        const overdue = !todo.done && todo.due_date && todo.due_date < today;
+        date.textContent = todo.due_date
+        ? ` (截止：${todo.due_date})${overdue ? ' ⚠ 已逾期' : ''}`
+        : '';
+        date.style.color = overdue ? '#d00' : '#888';
+        date.style.fontWeight = overdue ? 'bold' : 'normal';
+    }
+    applyState();
 
-        li.addEventListener('click', () => {
-            fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
-            .then(res => res.json())
-            .then(updated => {
-                li.style.textDecoration = updated.done ? 'line-through' : 'none';
-            });
+    li.appendChild(tag);
+    li.appendChild(text);
+    li.appendChild(date);
+
+    li.addEventListener('click', () => {
+        fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
+        .then(res => res.json())
+        .then(updated => {
+            todo.done = updated.done;
+            applyState();
+            loadStats();
         });
+    });
 
-        const editBtn = document.createElement('button');
-        editBtn.textContent = '編輯';
-        editBtn.style.marginLeft = '8px';
-        editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const newTitle = prompt('修改待辦事項：', todo.title);
-            if (newTitle === null) return; // 按取消就什麼都不做
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '編輯';
+    editBtn.style.marginLeft = '8px';
+    editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newTitle = prompt('修改待辦事項：', todo.title);
+        if (newTitle === null) return;
 
-            fetch(`/api/todos/${todo.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: newTitle })
-            })
-            .then(res => {
-                if (!res.ok) return res.json().then(err => { throw new Error(err.message); });
-                return res.json();
-            })
-            .then(updated => {
-                todo.title = updated.title;
-                text.textContent = updated.title;
-            })
-            .catch(err => alert(err.message));
+        fetch(`/api/todos/${todo.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+        })
+        .then(res => {
+            if (!res.ok) return res.json().then(err => { throw new Error(err.message); });
+            return res.json();
+        })
+        .then(updated => {
+            todo.title = updated.title;
+            text.textContent = updated.title;
+        })
+        .catch(err => alert(err.message));
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '刪除';
+    delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
+        .then(() => {
+            li.remove();
+            loadStats();
         });
+    });
 
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '刪除';
-        delBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
-            .then(() => li.remove());
-        });
-
-        li.appendChild(editBtn);
-        li.appendChild(delBtn);
-        listEl.appendChild(li);
+    li.appendChild(editBtn);
+    li.appendChild(delBtn);
+    listEl.appendChild(li);
     }
 
     // 重新向後端要一份（排序好、篩選好的）清單
     function loadTodos() {
-      const category = filterEl.value;
-      const url = category
+    const category = filterEl.value;
+    const url = category
         ? `/api/todos?category=${encodeURIComponent(category)}`
         : '/api/todos';
 
-      fetch(url)
+    fetch(url)
         .then(res => res.json())
         .then(todos => {
-          listEl.innerHTML = '';
-          todos.forEach(renderTodo);
+        listEl.innerHTML = '';
+        todos.forEach(renderTodo);
+        loadStats();
         });
     }
 

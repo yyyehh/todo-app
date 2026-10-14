@@ -34,6 +34,22 @@ app.get('/api/todos', (req, res) => {
   });
 });
 
+app.get('/api/todos/stats', (req, res) => {
+  db.get(
+    `SELECT
+       COUNT(*) AS total,
+       COALESCE(SUM(done), 0) AS done,
+       COALESCE(SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END), 0) AS pending,
+       COALESCE(SUM(CASE WHEN done = 0 AND due_date IS NOT NULL
+                          AND due_date < date('now', 'localtime') THEN 1 ELSE 0 END), 0) AS overdue
+     FROM todos`,
+    (err, row) => {
+      if (err) return res.status(500).json({ message: '資料庫錯誤' });
+      res.json(row);
+    }
+  );
+});
+
 app.get('/api/todos/:id', (req, res) => {
   db.get('SELECT * FROM todos WHERE id = ?', [Number(req.params.id)], (err, todo) => {
     if (err) return res.status(500).json({ message: '資料庫錯誤' });
