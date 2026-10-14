@@ -94,6 +94,26 @@ app.delete('/api/todos/:id', (req, res) => {
   });
 });
 
+app.patch('/api/todos/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const title = (req.body.title || '').trim();
+
+  if (!title) {
+    return res.status(400).json({ message: '待辦事項內容不能是空白' });
+  }
+  if (title.length > 50) {
+    return res.status(400).json({ message: '待辦事項內容不能超過 50 字' });
+  }
+
+  db.run('UPDATE todos SET title = ? WHERE id = ?', [title, id], function (err) {
+    if (err) return res.status(500).json({ message: '資料庫錯誤' });
+    if (this.changes === 0) {
+      return res.status(404).json({ message: '找不到這筆待辦事項' });
+    }
+    res.json({ id, title });
+  });
+});
+
 
 app.get('/about', (req, res) => {
   res.send('這是關於頁面');

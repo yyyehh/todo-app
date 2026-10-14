@@ -41,45 +41,70 @@
     const filterEl = document.getElementById('filter-select');
 
     function renderTodo(todo) {
-      const li = document.createElement('li');
+        const li = document.createElement('li');
 
-      const tag = document.createElement('span');
-      tag.textContent = `[${todo.category}] `;
-      tag.style.color = '#888';
-      tag.style.fontSize = '0.85em';
+        const tag = document.createElement('span');
+        tag.textContent = `[${todo.category}] `;
+        tag.style.color = '#888';
+        tag.style.fontSize = '0.85em';
 
-      const text = document.createElement('span');
-      text.textContent = todo.title;
+        const text = document.createElement('span');
+        text.textContent = todo.title;
 
-      const date = document.createElement('span');
-      date.textContent = todo.due_date ? ` (截止：${todo.due_date})` : '';
-      date.style.color = '#c00';
-      date.style.fontSize = '0.8em';
+        const date = document.createElement('span');
+        date.textContent = todo.due_date ? ` (截止：${todo.due_date})` : '';
+        date.style.color = '#c00';
+        date.style.fontSize = '0.8em';
 
-      li.appendChild(tag);
-      li.appendChild(text);
-      li.appendChild(date);
+        li.appendChild(tag);
+        li.appendChild(text);
+        li.appendChild(date);
 
-      if (todo.done) li.style.textDecoration = 'line-through';
+        if (todo.done) li.style.textDecoration = 'line-through';
 
-      li.addEventListener('click', () => {
-        fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
-          .then(res => res.json())
-          .then(updated => {
-            li.style.textDecoration = updated.done ? 'line-through' : 'none';
-          });
-      });
+        li.addEventListener('click', () => {
+            fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
+            .then(res => res.json())
+            .then(updated => {
+                li.style.textDecoration = updated.done ? 'line-through' : 'none';
+            });
+        });
 
-      const delBtn = document.createElement('button');
-      delBtn.textContent = '刪除';
-      delBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
-          .then(() => li.remove());
-      });
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '編輯';
+        editBtn.style.marginLeft = '8px';
+        editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const newTitle = prompt('修改待辦事項：', todo.title);
+            if (newTitle === null) return; // 按取消就什麼都不做
 
-      li.appendChild(delBtn);
-      listEl.appendChild(li);
+            fetch(`/api/todos/${todo.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: newTitle })
+            })
+            .then(res => {
+                if (!res.ok) return res.json().then(err => { throw new Error(err.message); });
+                return res.json();
+            })
+            .then(updated => {
+                todo.title = updated.title;
+                text.textContent = updated.title;
+            })
+            .catch(err => alert(err.message));
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '刪除';
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
+            .then(() => li.remove());
+        });
+
+        li.appendChild(editBtn);
+        li.appendChild(delBtn);
+        listEl.appendChild(li);
     }
 
     // 重新向後端要一份（排序好、篩選好的）清單
