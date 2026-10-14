@@ -17,3 +17,4 @@ h1{ text-align: center; }
 .add-box button { padding: 8px 16px; cursor: pointer; }
 ul { list-style: none; padding: 0; }
 li { padding: 10px; border-bottom: 1px solid #eee; }
+.filter-box { margin-bottom: 12px; }

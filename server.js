@@ -16,22 +16,30 @@ app.use((req, res, next) => {
 
 app.use(express.static('public')); 
 
-
-//取得所有待辦事項
 app.get('/api/todos', (req, res) => {
-  db.all('SELECT * FROM todos ORDER BY due_date ASC', (err, rows) => {
+  const { category } = req.query;
+  let sql = 'SELECT * FROM todos';
+  const params = [];
+
+  if (category) {
+    sql += ' WHERE category = ?';
+    params.push(category);
+  }
+  // 沒有截止日的排最後（SQLite 預設 NULL 會排最前面）
+  sql += ' ORDER BY due_date IS NULL, due_date ASC';
+
+  db.all(sql, params, (err, rows) => {
     if (err) return res.status(500).json({ message: '資料庫錯誤' });
     res.json(rows);
   });
 });
 
-//取得單一待辦事項
 app.get('/api/todos/:id', (req, res) => {
-  const todo = todos.find(t => t.id === Number(req.params.id));
-  if (!todo) {
-   return res.status(404).json({ message: '找不到這筆待辦事項' });
-  }
-  res.json(todo);
+  db.get('SELECT * FROM todos WHERE id = ?', [Number(req.params.id)], (err, todo) => {
+    if (err) return res.status(500).json({ message: '資料庫錯誤' });
+    if (!todo) return res.status(404).json({ message: '找不到這筆待辦事項' });
+    res.json(todo);
+  });
 });
 
 //新增待辦事項
