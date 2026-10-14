@@ -21,13 +21,22 @@ router.get('/stats', (req, res) => {
 
 // 取得清單（可用 ?category= 篩選）
 router.get('/', (req, res) => {
-  const { category } = req.query;
-  let sql = 'SELECT * FROM todos';
+  const { category, q } = req.query;
+  const conditions = [];
   const params = [];
 
   if (category) {
-    sql += ' WHERE category = ?';
+    conditions.push('category = ?');
     params.push(category);
+  }
+  if (q) {
+    conditions.push('title LIKE ?');
+    params.push(`%${q}%`);
+  }
+
+  let sql = 'SELECT * FROM todos';
+  if (conditions.length > 0) {
+    sql += ' WHERE ' + conditions.join(' AND ');
   }
   sql += ' ORDER BY due_date IS NULL, due_date ASC';
 

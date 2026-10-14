@@ -23,14 +23,15 @@
     </div>
 
     <div class="filter-box">
-      <label>篩選分類：</label>
-      <select id="filter-select">
+    <label>篩選分類：</label>
+    <select id="filter-select">
         <option value="">全部</option>
         <option value="未分類">未分類</option>
         <option value="作業">作業</option>
         <option value="生活">生活</option>
         <option value="鐵人賽">鐵人賽</option>
-      </select>
+    </select>
+    <input type="text" id="search-input" placeholder="搜尋待辦事項...">
     </div>
 
     <p id="stats"></p>
@@ -133,13 +134,15 @@
     }
 
     // 重新向後端要一份（排序好、篩選好的）清單
-    function loadTodos() {
-    const category = filterEl.value;
-    const url = category
-        ? `/api/todos?category=${encodeURIComponent(category)}`
-        : '/api/todos';
+    const searchEl = document.getElementById('search-input');
 
-    fetch(url)
+    function loadTodos() {
+    const params = new URLSearchParams();
+    if (filterEl.value) params.set('category', filterEl.value);
+    if (searchEl.value.trim()) params.set('q', searchEl.value.trim());
+
+    const qs = params.toString();
+    fetch(qs ? `/api/todos?${qs}` : '/api/todos')
         .then(res => res.json())
         .then(todos => {
         listEl.innerHTML = '';
@@ -147,6 +150,13 @@
         loadStats();
         });
     }
+
+    // 輸入停頓 300 毫秒後才送出，避免每打一個字就打一次 API
+    let searchTimer;
+    searchEl.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(loadTodos, 300);
+    });
 
     filterEl.addEventListener('change', loadTodos);
 
