@@ -1,5 +1,6 @@
 const express = require('express');
 const todosRouter = require('./routes/todos');
+const authRouter = require('./routes/auth');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.static('public'));
+app.use('/api/auth', authRouter);
 
 // 待辦事項相關的 API 全部交給 router
 app.use('/api/todos', todosRouter);
