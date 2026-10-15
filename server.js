@@ -1,6 +1,7 @@
 const express = require('express');
 const todosRouter = require('./routes/todos');
 const authRouter = require('./routes/auth');
+const auth = require('./middleware/auth');
 
 const app = express();
 
@@ -19,7 +20,7 @@ app.use(express.static('public'));
 app.use('/api/auth', authRouter);
 
 // 待辦事項相關的 API 全部交給 router
-app.use('/api/todos', todosRouter);
+app.use('/api/todos', auth, todosRouter);
 
 // /api 底下找不到的路徑，回傳 JSON 格式的 404
 app.use('/api', (req, res) => {

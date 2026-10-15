@@ -69,9 +69,9 @@ router.post('/', (req, res) => {
   }
 
   const stmt = db.prepare(
-    'INSERT INTO todos (title, done, category, due_date) VALUES (?, 0, ?, ?)'
+    'INSERT INTO todos (title, done, category, due_date, user_id) VALUES (?, 0, ?, ?, ?)'
   );
-  stmt.run(title, category, due_date, function (err) {
+  stmt.run(title, category, due_date, req.user.id, function (err) {
     if (err) return res.status(500).json({ message: '資料庫錯誤' });
     res.status(201).json({ id: this.lastID, title, done: 0, category, due_date });
   });

@@ -8,6 +8,11 @@
 </head>
 <body>
   <div class="container">
+    <div class="topbar">
+      <span id="welcome"></span>
+      <button id="logout-btn">登出</button>
+    </div>
+
     <h1>我的待辦清單</h1>
 
     <div class="add-box">
@@ -23,15 +28,15 @@
     </div>
 
     <div class="filter-box">
-    <label>篩選分類：</label>
-    <select id="filter-select">
+      <label>篩選分類：</label>
+      <select id="filter-select">
         <option value="">全部</option>
         <option value="未分類">未分類</option>
         <option value="作業">作業</option>
         <option value="生活">生活</option>
         <option value="鐵人賽">鐵人賽</option>
-    </select>
-    <input type="text" id="search-input" placeholder="搜尋待辦事項...">
+      </select>
+      <input type="text" id="search-input" placeholder="搜尋待辦事項...">
     </div>
 
     <p id="stats"></p>
@@ -41,124 +46,147 @@
   <script>
     const listEl = document.getElementById('todo-list');
     const filterEl = document.getElementById('filter-select');
+    const searchEl = document.getElementById('search-input');
 
-    function loadStats() {
-    fetch('/api/todos/stats')
-        .then(res => res.json())
-        .then(s => {
-        document.getElementById('stats').textContent =
-            `共 ${s.total} 筆｜未完成 ${s.pending} 筆｜已完成 ${s.done} 筆｜已逾期 ${s.overdue} 筆`;
-        });
+    document.getElementById('welcome').textContent =
+      '你好，' + (localStorage.getItem('username') || '');
+
+    function goLogin() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      location.href = '/login.html';
     }
 
+    // 所有 API 請求都經過這裡：自動帶 token，被判定未登入就回登入頁
+    function api(url, options = {}) {
+      return fetch(url, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+      }).then(res => {
+        if (res.status === 401) {
+          goLogin();
+          throw new Error('請先登入');
+        }
+        return res;
+      });
+    }
+
+    document.getElementById('logout-btn').addEventListener('click', goLogin);
+
     function renderTodo(todo) {
-    const today = new Date().toLocaleDateString('sv-SE'); // 本地日期，格式 2026-10-07
+      const today = new Date().toLocaleDateString('sv-SE');
 
-    const li = document.createElement('li');
+      const li = document.createElement('li');
 
-    const tag = document.createElement('span');
-    tag.textContent = `[${todo.category}] `;
-    tag.style.color = '#888';
-    tag.style.fontSize = '0.85em';
+      const tag = document.createElement('span');
+      tag.textContent = `[${todo.category}] `;
+      tag.style.color = '#888';
+      tag.style.fontSize = '0.85em';
 
-    const text = document.createElement('span');
-    text.textContent = todo.title;
+      const text = document.createElement('span');
+      text.textContent = todo.title;
 
-    const date = document.createElement('span');
-    date.style.fontSize = '0.8em';
+      const date = document.createElement('span');
+      date.style.fontSize = '0.8em';
 
-    // 依目前狀態更新外觀（完成線、逾期提示）
-    function applyState() {
+      function applyState() {
         li.style.textDecoration = todo.done ? 'line-through' : 'none';
         const overdue = !todo.done && todo.due_date && todo.due_date < today;
         date.textContent = todo.due_date
-        ? ` (截止：${todo.due_date})${overdue ? ' ⚠ 已逾期' : ''}`
-        : '';
+          ? ` (截止：${todo.due_date})${overdue ? ' ⚠ 已逾期' : ''}`
+          : '';
         date.style.color = overdue ? '#d00' : '#888';
         date.style.fontWeight = overdue ? 'bold' : 'normal';
-    }
-    applyState();
+      }
+      applyState();
 
-    li.appendChild(tag);
-    li.appendChild(text);
-    li.appendChild(date);
+      li.appendChild(tag);
+      li.appendChild(text);
+      li.appendChild(date);
 
-    li.addEventListener('click', () => {
-        fetch(`/api/todos/${todo.id}`, { method: 'PUT' })
-        .then(res => res.json())
-        .then(updated => {
+      li.addEventListener('click', () => {
+        api(`/api/todos/${todo.id}`, { method: 'PUT' })
+          .then(res => res.json())
+          .then(updated => {
             todo.done = updated.done;
             applyState();
             loadStats();
-        });
-    });
+          });
+      });
 
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '編輯';
-    editBtn.style.marginLeft = '8px';
-    editBtn.addEventListener('click', (e) => {
+      const editBtn = document.createElement('button');
+      editBtn.textContent = '編輯';
+      editBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const newTitle = prompt('修改待辦事項：', todo.title);
         if (newTitle === null) return;
 
-        fetch(`/api/todos/${todo.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle })
+        api(`/api/todos/${todo.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle })
         })
-        .then(res => {
+          .then(res => {
             if (!res.ok) return res.json().then(err => { throw new Error(err.message); });
             return res.json();
-        })
-        .then(updated => {
+          })
+          .then(updated => {
             todo.title = updated.title;
             text.textContent = updated.title;
-        })
-        .catch(err => alert(err.message));
-    });
+          })
+          .catch(err => alert(err.message));
+      });
 
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '刪除';
-    delBtn.addEventListener('click', (e) => {
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '刪除';
+      delBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        fetch(`/api/todos/${todo.id}`, { method: 'DELETE' })
-        .then(() => {
+        api(`/api/todos/${todo.id}`, { method: 'DELETE' })
+          .then(() => {
             li.remove();
             loadStats();
-        });
-    });
+          });
+      });
 
-    li.appendChild(editBtn);
-    li.appendChild(delBtn);
-    listEl.appendChild(li);
+      li.appendChild(editBtn);
+      li.appendChild(delBtn);
+      listEl.appendChild(li);
     }
 
-    // 重新向後端要一份（排序好、篩選好的）清單
-    const searchEl = document.getElementById('search-input');
+    function loadStats() {
+      api('/api/todos/stats')
+        .then(res => res.json())
+        .then(s => {
+          document.getElementById('stats').textContent =
+            `共 ${s.total} 筆｜未完成 ${s.pending} 筆｜已完成 ${s.done} 筆｜已逾期 ${s.overdue} 筆`;
+        });
+    }
 
     function loadTodos() {
-    const params = new URLSearchParams();
-    if (filterEl.value) params.set('category', filterEl.value);
-    if (searchEl.value.trim()) params.set('q', searchEl.value.trim());
+      const params = new URLSearchParams();
+      if (filterEl.value) params.set('category', filterEl.value);
+      if (searchEl.value.trim()) params.set('q', searchEl.value.trim());
 
-    const qs = params.toString();
-    fetch(qs ? `/api/todos?${qs}` : '/api/todos')
+      const qs = params.toString();
+      api(qs ? `/api/todos?${qs}` : '/api/todos')
         .then(res => res.json())
         .then(todos => {
-        listEl.innerHTML = '';
-        todos.forEach(renderTodo);
-        loadStats();
+          listEl.innerHTML = '';
+          todos.forEach(renderTodo);
+          loadStats();
         });
     }
 
-    // 輸入停頓 300 毫秒後才送出，避免每打一個字就打一次 API
+    filterEl.addEventListener('change', loadTodos);
+
     let searchTimer;
     searchEl.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(loadTodos, 300);
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(loadTodos, 300);
     });
-
-    filterEl.addEventListener('change', loadTodos);
 
     document.getElementById('add-btn').addEventListener('click', () => {
       const titleInput = document.getElementById('title-input');
@@ -172,7 +200,7 @@
         return;
       }
 
-      fetch('/api/todos', {
+      api('/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, category, due_date })
@@ -184,7 +212,7 @@
         .then(() => {
           titleInput.value = '';
           dueDateInput.value = '';
-          loadTodos(); // 新增後重新載入，順序就會是後端排好的
+          loadTodos();
         })
         .catch(err => alert(err.message));
     });
