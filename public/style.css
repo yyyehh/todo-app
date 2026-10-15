@@ -19,3 +19,12 @@ ul { list-style: none; padding: 0; }
 li { padding: 10px; border-bottom: 1px solid #eee; }
 .filter-box { margin-bottom: 12px; }
 #stats { color: #666; font-size: 0.9em; }
+#stats { color: #666; font-size: 0.9em; }
+.filter-box input { padding: 6px; margin-left: 8px; }
+li button { margin-left: 8px; cursor: pointer; }
+.topbar { display: flex; justify-content: space-between; align-items: center; color: #666; font-size: 0.9em; }
+.auth-box { display: flex; flex-direction: column; gap: 10px; }
+.auth-box input { padding: 8px; }
+.auth-buttons { display: flex; gap: 8px; }
+.auth-buttons button { flex: 1; padding: 8px; cursor: pointer; }
+#message { color: #d00; min-height: 1.2em; margin: 0; }

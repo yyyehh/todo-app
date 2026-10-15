@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config');
 
 router.post('/register', async (req, res) => {
   const username = (req.body.username || '').trim();
@@ -32,6 +34,32 @@ router.post('/register', async (req, res) => {
   } catch (e) {
     res.status(500).json({ message: '伺服器發生未預期的錯誤' });
   }
+});
+
+router.post('/login', (req, res) => {
+  const username = (req.body.username || '').trim();
+  const password = req.body.password || '';
+
+  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
+    if (err) return res.status(500).json({ message: '資料庫錯誤' });
+
+    try {
+      const ok = user && (await bcrypt.compare(password, user.password_hash));
+      if (!ok) {
+        // 帳號不存在和密碼錯誤用同一句話，不讓外人探測有哪些帳號
+        return res.status(401).json({ message: '帳號或密碼錯誤' });
+      }
+
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      res.json({ token, username: user.username });
+    } catch (e) {
+      res.status(500).json({ message: '伺服器發生未預期的錯誤' });
+    }
+  });
 });
 
 module.exports = router;

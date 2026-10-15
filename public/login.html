@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登入 - 我的待辦清單</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>我的待辦清單</h1>
+    <div class="auth-box">
+      <input type="text" id="username" placeholder="帳號（3 到 20 字）">
+      <input type="password" id="password" placeholder="密碼（至少 6 字）">
+      <div class="auth-buttons">
+        <button id="login-btn">登入</button>
+        <button id="register-btn">註冊</button>
+      </div>
+      <p id="message"></p>
+    </div>
+  </div>
+
+  <script>
+    const msg = document.getElementById('message');
+
+    function getInputs() {
+      return {
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value
+      };
+    }
+
+    function post(url, body) {
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }).then(res =>
+        res.json().then(data => {
+          if (!res.ok) throw new Error(data.message);
+          return data;
+        })
+      );
+    }
+
+    function login() {
+      msg.style.color = '#d00';
+      post('/api/auth/login', getInputs())
+        .then(data => {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('username', data.username);
+          location.href = '/';
+        })
+        .catch(err => { msg.textContent = err.message; });
+    }
+
+    document.getElementById('login-btn').addEventListener('click', login);
+
+    document.getElementById('register-btn').addEventListener('click', () => {
+      post('/api/auth/register', getInputs())
+        .then(() => {
+          msg.style.color = '#080';
+          msg.textContent = '註冊成功，請按登入';
+        })
+        .catch(err => {
+          msg.style.color = '#d00';
+          msg.textContent = err.message;
+        });
+    });
+
+    // 在密碼欄按 Enter 也能登入
+    document.getElementById('password').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>
