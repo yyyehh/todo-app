@@ -2,8 +2,20 @@ const express = require('express');
 const todosRouter = require('./routes/todos');
 const authRouter = require('./routes/auth');
 const auth = require('./middleware/auth');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
+
+app.use(helmet({ contentSecurityPolicy: false }));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 分鐘
+  limit: 10,                  // 同一個 IP 最多 10 次
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { message: '嘗試次數過多，請 15 分鐘後再試' }
+});
 
 // 計時 Middleware
 app.use((req, res, next) => {
@@ -20,7 +32,7 @@ app.use(express.static('public'));
 app.use('/api/auth', authRouter);
 
 // 待辦事項相關的 API 全部交給 router
-app.use('/api/todos', auth, todosRouter);
+app.use('/api/auth', authLimiter, authRouter);
 
 // /api 底下找不到的路徑，回傳 JSON 格式的 404
 app.use('/api', (req, res) => {
