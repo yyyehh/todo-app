@@ -1,17 +1,19 @@
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('./config');
+require('./config'); // 啟動時就檢查環境變數
 const auth = require('./middleware/auth');
 const authRouter = require('./routes/auth');
 const todosRouter = require('./routes/todos');
 
 const app = express();
 
+// 部署在雲端時，請求會經過代理伺服器，要這行才能取得真正的使用者 IP（限流需要）
 app.set('trust proxy', 1);
 
 app.use(helmet({ contentSecurityPolicy: false }));
 
+// 計時 Middleware
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
