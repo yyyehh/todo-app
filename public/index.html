@@ -57,6 +57,13 @@
       location.href = '/login.html';
     }
 
+    // 從上一頁還原畫面時，如果已經登出，直接導回登入頁
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted && !localStorage.getItem('token')) {
+        location.href = '/login.html';
+      }
+    });
+
     // 所有 API 請求都經過這裡：自動帶 token，被判定未登入就回登入頁
     function api(url, options = {}) {
       return fetch(url, {

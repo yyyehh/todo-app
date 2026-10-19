@@ -1,45 +1,45 @@
 const express = require('express');
-const todosRouter = require('./routes/todos');
-const authRouter = require('./routes/auth');
-const auth = require('./middleware/auth');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+require('./config');
+const auth = require('./middleware/auth');
+const authRouter = require('./routes/auth');
+const todosRouter = require('./routes/todos');
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(helmet({ contentSecurityPolicy: false }));
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,   // 15 分鐘
-  limit: 10,                  // 同一個 IP 最多 10 次
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { message: '嘗試次數過多，請 15 分鐘後再試' }
-});
-
-// 計時 Middleware
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.url} - ${duration}ms`);
+    console.log(`${req.method} ${req.url} - ${Date.now() - start}ms`);
   });
   next();
 });
 
 app.use(express.json());
 app.use(express.static('public'));
-app.use('/api/auth', authRouter);
 
-// 待辦事項相關的 API 全部交給 router
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { message: '嘗試次數過多，請 15 分鐘後再試' }
+});
+
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
 app.use('/api/auth', authLimiter, authRouter);
+app.use('/api/todos', auth, todosRouter);
 
-// /api 底下找不到的路徑，回傳 JSON 格式的 404
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'API 路徑不存在' });
 });
 
-// 錯誤處理 Middleware（特徵：四個參數）
 app.use((err, req, res, next) => {
   console.error(err.message);
   const status = err.status || 500;
@@ -48,6 +48,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(3000, () => {
-  console.log('伺服器啟動於 http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, (err) => {
+  if (err) {
+    console.error('啟動失敗：', err.message);
+    return;
+  }
+  console.log(`伺服器啟動於 http://localhost:${PORT}`);
 });
