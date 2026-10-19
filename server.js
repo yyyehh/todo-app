@@ -33,7 +33,15 @@ const authLimiter = rateLimit({
   message: { message: '嘗試次數過多，請 15 分鐘後再試' }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+const startedAt = new Date().toISOString();
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    startedAt,
+    uptimeSeconds: Math.round(process.uptime())
+  });
+});
 
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/todos', auth, todosRouter);
